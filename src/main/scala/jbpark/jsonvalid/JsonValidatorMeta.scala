@@ -79,11 +79,12 @@ object JsonValidatorMeta {
   /**
    * 복합적인 형태의 타입을 체크하고자 할 때 사용한다.
    *
+   * REAL    : 실수(정수 + 부동소수점) 타입   (예시: 12.34, 5)
    * STR_INT : 문자열을 포함한 모든 정수 타입 (예시: "123", 456)
    * STR_REAL: 문자열을 포함한 모든 실수 타입 (예시: "12.34", 1, 1.0)
    *
-   * STR_INT_RANGE, STR_REAL_RANGE:
-   * 각각 STR_INT, STR_REAL과 동일하며 범위 제약 조건을 추가로 지정할 수 있는 타입이다.
+   * REAL_RANGE, STR_INT_RANGE, STR_REAL_RANGE:
+   * 각각 REAL, STR_INT, STR_REAL과 동일하며 범위 제약 조건을 추가로 지정할 수 있는 타입이다.
    * 범위 제한이 없을 경우 null로 지정하면 된다.
    * 범위 제약 조건에 어긋나면 NumberRangeException이 발생한다.
    *
@@ -108,12 +109,12 @@ object JsonValidatorMeta {
    * ANY_BOOL : ALLOW_VAL("1", "0", 1, 0, true, false)와 동일
    */
 
-  /********************************/
-  /* 3-4. Value Types - Validator */
-  /********************************/
+  /*********************************/
+  /* 3-4. Value Types - Validators */
+  /*********************************/
 
   /**
-   * Validator(람다식)로 값을 체크하고자 할 때 사용한다.
+   * Validator(lambda expression)로 값을 체크하고자 할 때 사용한다.
    * Validator가 false를 리턴하면 ValidationFailedException이 발생한다.
    *
    * STR_CHECK : String. 문자열 타입의 Validator
@@ -299,8 +300,14 @@ object JsonValidatorMeta {
 
   sealed trait ComplexType extends ValueType
 
+  case object REAL extends ComplexType
   case object STR_INT extends ComplexType
   case object STR_REAL extends ComplexType
+
+  sealed case class REAL_RANGE(
+    min: java.lang.Double,
+    max: java.lang.Double
+  ) extends ComplexType
 
   sealed case class STR_INT_RANGE(
     min: java.lang.Long,
@@ -361,9 +368,9 @@ object JsonValidatorMeta {
   ) extends JsonValidatorException
 
 
-  /********************************/
-  /* 3-4. Value Types - Validator */
-  /********************************/
+  /*********************************/
+  /* 3-4. Value Types - Validators */
+  /*********************************/
 
   sealed trait Validator extends ValueType
 

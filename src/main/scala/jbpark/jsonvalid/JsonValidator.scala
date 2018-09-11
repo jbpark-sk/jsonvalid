@@ -298,6 +298,10 @@ class JsonValidator(valueType: ValueType, collectMultipleErrors: Boolean) {
           raiseError(TypeErrorException(depth, valueType.toString, jValue))
       }
 
+    // 실수(정수 + 부동소수점) 타입
+    case REAL =>
+      checkValueType(REAL_RANGE(null, null), jValue, depth)
+
     // 문자열을 포함한 모든 정수 타입
     case STR_INT =>
       checkValueType(STR_INT_RANGE(null, null), jValue, depth)
@@ -305,6 +309,17 @@ class JsonValidator(valueType: ValueType, collectMultipleErrors: Boolean) {
     // 문자열을 포함한 모든 실수 타입
     case STR_REAL =>
       checkValueType(STR_REAL_RANGE(null, null), jValue, depth)
+
+    // REAL과 동일하며 범위 제약 조건을 추가로 지정할 수 있는 타입
+    case REAL_RANGE(min, max) =>
+      jValue match {
+        case JInt(value: BigInt) =>
+          checkValueType(DBL_RANGE(min, max), JDouble(value.toDouble), depth)
+        case JDouble(_) =>
+          checkValueType(DBL_RANGE(min, max), jValue, depth)
+        case _ =>
+          raiseError(TypeErrorException(depth, valueType.toString, jValue))
+      }
 
     // STR_INT와 동일하며 범위 제약 조건을 추가로 지정할 수 있는 타입
     case STR_INT_RANGE(min, max) =>

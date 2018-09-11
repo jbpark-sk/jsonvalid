@@ -8,6 +8,75 @@ import org.scalatest._
 
 class ComplexTypeSpec extends FreeSpec with Matchers {
 
+  "REAL" - {
+    val valueType = ARRAY(null, null, NULL(JsonSchema(
+      REQ("score") -> NULL(REAL)
+    )))
+
+    "when the type is JInt" - {
+      val errors = JsonValidator(valueType, true).check("""
+      [
+        {"score": 12},
+        {"score": -34},
+        {"score": 0}
+      ]
+      """)
+
+      "should never raise any error" in {
+        errors shouldBe empty
+      }
+    }
+
+    "when the type is JDouble" - {
+      val errors = JsonValidator(valueType, true).check("""
+      [
+        {"score": 12.34},
+        {"score": -56.78},
+        {"score": 0.0}
+      ]
+      """)
+
+      "should never raise any error" in {
+        errors shouldBe empty
+      }
+    }
+
+    "when the type is neither JInt nor JDouble" - {
+      val errors = JsonValidator(valueType, true).check("""
+      [
+        {"score": "12"},
+        {"score": [0]},
+        {"score": [12.34]},
+        {"score": false}
+      ]
+      """)
+
+      "should raise TypeErrorException" in {
+        errors should have size 4
+        errors(0) shouldBe a [TypeErrorException]
+        errors(0) should have (
+          'depth        (Seq("[0]", "score")),
+          'expectedType ("REAL_RANGE(null,null)"),
+        )
+        errors(1) shouldBe a [TypeErrorException]
+        errors(1) should have (
+          'depth        (Seq("[1]", "score")),
+          'expectedType ("REAL_RANGE(null,null)"),
+        )
+        errors(2) shouldBe a [TypeErrorException]
+        errors(2) should have (
+          'depth        (Seq("[2]", "score")),
+          'expectedType ("REAL_RANGE(null,null)"),
+        )
+        errors(3) shouldBe a [TypeErrorException]
+        errors(3) should have (
+          'depth        (Seq("[3]", "score")),
+          'expectedType ("REAL_RANGE(null,null)"),
+        )
+      }
+    }
+  }
+
   "STR_INT" - {
     val valueType = ARRAY(null, null, NULL(JsonSchema(
       REQ("age") -> NULL(STR_INT)
@@ -234,6 +303,104 @@ class ComplexTypeSpec extends FreeSpec with Matchers {
         errors(3) should have (
           'depth        (Seq("[3]", "score")),
           'expectedType ("STR_REAL_RANGE(null,null)"),
+        )
+      }
+    }
+  }
+
+  "REAL_RANGE" - {
+    val valueType = ARRAY(null, null, NULL(JsonSchema(
+      REQ("a") -> NULL(REAL_RANGE(null, null)),
+      REQ("b") -> NULL(REAL_RANGE(-1.0, null)),
+      REQ("c") -> NULL(REAL_RANGE(null, 1.0)),
+      REQ("d") -> NULL(REAL_RANGE(-0.5, 0.5))
+    )))
+
+    "when the range does not exceed the limit" - {
+      val errors = JsonValidator(valueType, true).check("""
+      [
+        {"a": -10000.0, "b": -1.0, "c": -10000, "d": 0},
+        {"a": 10000.0, "b": 10000.0, "c": 1, "d": 0}
+      ]
+      """)
+
+      "should never raise any error" in {
+        errors shouldBe empty
+      }
+    }
+
+    "when the range exceeds the lower limit" - {
+      val errors = JsonValidator(valueType, true).check("""
+      [
+        {"a": -10000.0, "b": -1.1, "c": -10000, "d": -1}
+      ]
+      """)
+
+      "should raise NumberRangeException" in {
+        errors should have size 2
+        errors(0) shouldBe a [NumberRangeException]
+        errors(0) should have (
+          'depth         (Seq("[0]", "b")),
+          'expectedRange ("-1.0~null"),
+        )
+        errors(1) shouldBe a [NumberRangeException]
+        errors(1) should have (
+          'depth         (Seq("[0]", "d")),
+          'expectedRange ("-0.5~0.5"),
+        )
+      }
+    }
+
+    "when the range exceeds the upper limit" - {
+      val errors = JsonValidator(valueType, true).check("""
+      [
+        {"a": 10000.0, "b": 10000.0, "c": 2, "d": 1}
+      ]
+      """)
+
+      "should raise NumberRangeException" in {
+        errors should have size 2
+        errors(0) shouldBe a [NumberRangeException]
+        errors(0) should have (
+          'depth         (Seq("[0]", "c")),
+          'expectedRange ("null~1.0"),
+        )
+        errors(1) shouldBe a [NumberRangeException]
+        errors(1) should have (
+          'depth         (Seq("[0]", "d")),
+          'expectedRange ("-0.5~0.5"),
+        )
+      }
+    }
+
+    "when the type is neither JInt nor JDouble" - {
+      val errors = JsonValidator(valueType, true).check("""
+      [
+        {"a": "0", "b": [0], "c": [0.0], "d": false}
+      ]
+      """)
+
+      "should raise TypeErrorException" in {
+        errors should have size 4
+        errors(0) shouldBe a [TypeErrorException]
+        errors(0) should have (
+          'depth        (Seq("[0]", "a")),
+          'expectedType ("REAL_RANGE(null,null)"),
+        )
+        errors(1) shouldBe a [TypeErrorException]
+        errors(1) should have (
+          'depth        (Seq("[0]", "b")),
+          'expectedType ("REAL_RANGE(-1.0,null)"),
+        )
+        errors(2) shouldBe a [TypeErrorException]
+        errors(2) should have (
+          'depth        (Seq("[0]", "c")),
+          'expectedType ("REAL_RANGE(null,1.0)"),
+        )
+        errors(3) shouldBe a [TypeErrorException]
+        errors(3) should have (
+          'depth        (Seq("[0]", "d")),
+          'expectedType ("REAL_RANGE(-0.5,0.5)"),
         )
       }
     }
